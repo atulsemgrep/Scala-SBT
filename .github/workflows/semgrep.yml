@@ -1,26 +1,47 @@
+name: Semgrep SCA
+
 on:
   workflow_dispatch: {}
   pull_request: {}
   push:
     branches:
-    - main
-    - master
-    paths:
-    - .github/workflows/semgrep.yml
+      - main
+      - master
   schedule:
-  # random HH:MM to avoid a load spike on GitHub Actions at 00:00
-  - cron: 34 5 * * *
-name: Semgrep
+    - cron: "34 5 * * *"
 jobs:
-  semgrep:
-    name: semgrep/ci
+  semgrep-the-sca:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    container:
+      image: sbtscala/scala-sbt:eclipse-temurin-17.0.15_6_1.12.11_3.3.7
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-    container:
-      image: semgrep/semgrep
     steps:
-    - uses: actions/checkout@v4
-    - run: semgrep ci --supply-chain --allow-local-builds
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            python3 \
+            python3-pip \
+            pipx \
+            ca-certificates \
+            git
+      - name: Install Semgrep
+        run: |
+          pipx install semgrep
+          export PATH="$PATH:/root/.local/bin"
+          semgrep --version
+          sbt --version
+      - name: Run Semgrep SCA
+        run: |
+          export PATH="$PATH:/root/.local/bin"
+          semgrep ci \
+            --supply-chain \
+            --allow-local-builds \
+            --include='build.sbt' \
+            --verbose \
+            --json \
