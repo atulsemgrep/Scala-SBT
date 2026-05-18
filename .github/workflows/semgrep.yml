@@ -32,6 +32,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Mark repository as safe 
+        run: | 
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
       - name: Install dependencies and Semgrep
         run: |
           apt-get update
